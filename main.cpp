@@ -98,7 +98,7 @@ Mat opening(Mat source, neighborhood_structure neighborhood, int no_iter) {
 
     Mat dst, aux;
 
-    return dilation(erosion(std::move(source), neighborhood, no_iter), neighborhood, no_iter);
+    return dilation(erosion(move(source), neighborhood, no_iter), neighborhood, no_iter);
 
 }
 
@@ -106,14 +106,14 @@ Mat closing(Mat source, neighborhood_structure neighborhood, int no_iter) {
 
     Mat dst, aux;
 
-    return erosion(dilation(std::move(source), neighborhood, no_iter), neighborhood, no_iter);
+    return erosion(dilation(move(source), neighborhood, no_iter), neighborhood, no_iter);
 
 }
 
 
 
 
-Mat bgrToHsv(const Mat& bgr) {
+Mat bgrToHsv(Mat& bgr) {
     CV_Assert(bgr.type() == CV_8UC3);
     Mat hsv(bgr.size(), CV_8UC3);
 
@@ -153,21 +153,21 @@ Mat bgrToHsv(const Mat& bgr) {
 }
 
 
-double contourAreaNaive(const std::vector<cv::Point>& contour) {
+double contourAreaNaive(vector<Point>& contour) {
     double area = 0.0;
     int n = contour.size();
 
     if (n < 3) return 0.0;
 
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; i++) {
         int j = (i + 1) % n;
         area += (contour[i].x * contour[j].y) - (contour[j].x * contour[i].y);
     }
 
-    return std::abs(area) / 2.0;
+    return abs(area) / 2.0;
 }
 
-double arcLengthNaive(const vector<Point>& contour, bool closed = true) {
+double arcLengthNaive(vector<Point>& contour, bool closed) {
     double length = 0.0;
     int n = contour.size();
 
@@ -176,20 +176,20 @@ double arcLengthNaive(const vector<Point>& contour, bool closed = true) {
     for (int i = 0; i < n - 1; ++i) {
         double dx = contour[i + 1].x - contour[i].x;
         double dy = contour[i + 1].y - contour[i].y;
-        length += std::sqrt(dx * dx + dy * dy);
+        length += sqrt(dx * dx + dy * dy);
     }
 
     if (closed) {
         double dx = contour[0].x - contour[n - 1].x;
         double dy = contour[0].y - contour[n - 1].y;
-        length += std::sqrt(dx * dx + dy * dy);
+        length += sqrt(dx * dx + dy * dy);
     }
 
     return length;
 }
 
 
-Rect boundingBoxManual(const vector<Point>& points) {
+Rect boundingBoxManual(vector<Point>& points) {
     if (points.empty()) return {0, 0, 0, 0};
 
     int minX = points[0].x;
@@ -197,7 +197,7 @@ Rect boundingBoxManual(const vector<Point>& points) {
     int minY = points[0].y;
     int maxY = points[0].y;
 
-    for (const auto& p : points) {
+    for (Point p : points) {
         if (p.x < minX) minX = p.x;
         if (p.x > maxX) maxX = p.x;
         if (p.y < minY) minY = p.y;
@@ -208,7 +208,7 @@ Rect boundingBoxManual(const vector<Point>& points) {
 }
 
 
-bool esteOctogon(const vector<Point>& aproximat) {
+bool esteOctogon(vector<Point>& aproximat) {
     if (aproximat.size() < 7 || aproximat.size() > 9)
         return false;
     Rect rect = boundingBoxManual(aproximat);
@@ -218,7 +218,7 @@ bool esteOctogon(const vector<Point>& aproximat) {
 
 
 
-bool esteTriunghi(const vector<Point>& aproximat) {
+bool esteTriunghi(vector<Point>& aproximat) {
     if (aproximat.size() == 3)
         return true;
 
@@ -230,7 +230,7 @@ bool esteTriunghi(const vector<Point>& aproximat) {
     return false;
 }
 
-bool esteCerc(const vector<Point>& contur, const vector<Point>& aproximat) {
+bool esteCerc(vector<Point>& contur, vector<Point>& aproximat) {
 
 
     double arie = contourAreaNaive(contur);
@@ -243,7 +243,7 @@ bool esteCerc(const vector<Point>& contur, const vector<Point>& aproximat) {
     return circular > 0.75 && aproximat.size() > 6;
 }
 
-bool estePatrat(const vector<Point>& aproximat) {
+bool estePatrat(vector<Point>& aproximat) {
 
     if (aproximat.size() != 4)
         return false;
@@ -254,7 +254,7 @@ bool estePatrat(const vector<Point>& aproximat) {
 
 
 
-bool areCuloare(const Mat& hsv, const vector<Point>& contur, Scalar hmin, Scalar hmax, float prag = 0.2) {
+bool areCuloare(Mat& hsv, vector<Point>& contur, Scalar hmin, Scalar hmax, float prag = 0.2) {
 
     Mat masca = Mat::zeros(hsv.size(), CV_8UC1);
     drawContours(masca, vector<vector<Point>>{contur}, 0, Scalar(255), FILLED);
@@ -314,14 +314,14 @@ Mat region_filling(Mat source, neighborhood_structure neighborhood) {
     }
     //*****END OF YOUR CODE(DO NOT DELETE / MODIFY THIS LINE) *****
 
-    return dst;
+    return dst | n;
 
 }
 
-bool overlapsWithOtherColor(const vector<Point>& contour, const vector<vector<Point>>& alte_contururi) {
+bool overlapsWithOtherColor(vector<Point>& contour, vector<vector<Point>>& alte_contururi) {
     Rect r1 = boundingBoxManual(contour);
 
-    for (const vector<Point>& alte : alte_contururi) {
+    for (vector<Point>& alte : alte_contururi) {
         Rect r2 = boundingBoxManual(alte);
 
         Rect intersectie = r1 & r2;
@@ -336,7 +336,7 @@ bool overlapsWithOtherColor(const vector<Point>& contour, const vector<vector<Po
 
 
 int main() {
-    Mat img = imread("D:/sign detection/images/imag3.jpg");
+    Mat img = imread("D:/sign detection/images/imag5.jpg");
     Mat copie_original = img.clone();
     if (img.empty()) {
         cerr << "Nu s-a putut incarca imaginea!\n";
@@ -350,8 +350,8 @@ int main() {
 
     Scalar red_low1(0, 100, 40), red_high1(10, 255, 255);
     Scalar red_low2(170, 110, 40), red_high2(180, 255, 255);
-    Scalar blue_low(85, 100, 100);
-    Scalar blue_high(130, 255, 240);
+
+    Scalar blue_low(85, 100, 100), blue_high(130, 255, 240);
 
     Mat mask_red1, mask_red2, mask_red, mask_blue;
     inRange(hsv, red_low1, red_high1, mask_red1);
@@ -367,8 +367,8 @@ int main() {
     neighborhood.di = di;
     neighborhood.dj = dj;
 
-    mask_red = opening(mask_red, neighborhood, 1);
-    mask_red = closing(mask_red, neighborhood, 1);
+    mask_red = opening(mask_red, neighborhood, 1); //remove small white noise and preserve the shape
+    mask_red = closing(mask_red, neighborhood, 1); //fill small holes and fill contour
     mask_red = dilation(mask_red, neighborhood, 1);
 
     Mat flood_red = mask_red.clone();
@@ -385,14 +385,14 @@ int main() {
     bitwise_not(flood_blue, flood_blue);
     mask_blue = mask_blue | flood_blue;
 
-    //imshow("Mask Red", mask_red);
-    //imshow("Mask Blue", mask_blue);
+    imshow("Mask Red", mask_red);
+    imshow("Mask Blue", mask_blue);
 
     // SEMNELE ROSII
     vector<vector<Point>> contururi_red;
     findContours(mask_red, contururi_red, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
-    for (const auto& contur : contururi_red) {
+    for (auto& contur : contururi_red) {
 
         if (contourAreaNaive(contur) < 400) continue;
 
@@ -424,7 +424,7 @@ int main() {
     vector<vector<Point>> contururi_blue;
     findContours(mask_blue, contururi_blue, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
-    for (const auto& contur : contururi_blue) {
+    for (auto& contur : contururi_blue) {
 
         if (contourAreaNaive(contur) < 400) continue;
 
